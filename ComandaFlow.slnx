@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ComandaFlow.API/ComandaFlow.API.csproj" Id="50274a89-ddef-4ab9-bd75-2b2518b7aba4" />
+  <Project Path="ComandaFlow.Application/ComandaFlow.Application.csproj" Id="a9836272-4261-4cfb-becc-5b85206b8b65" />
+  <Project Path="ComandaFlow.Domain/ComandaFlow.Domain.csproj" />
+  <Project Path="ComandaFlow.Infrastructure/ComandaFlow.Infrastructure.csproj" Id="71066673-fbec-4356-9af2-b6af2ad4c1dc" />
+</Solution>

@@ -1,0 +1,6 @@
+@ComandaFlow.API_HostAddress = http://localhost:5082
+
+GET {{ComandaFlow.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
