@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aee4a86e-68bc-4d7f-ae41-6f686adba274</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\ComandaFlow.Application\ComandaFlow.Application.csproj" />
     <ProjectReference Include="..\ComandaFlow.Infrastructure\ComandaFlow.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>
