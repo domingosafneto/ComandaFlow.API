@@ -29,4 +29,19 @@ public class ComandaRepository : IComandaRepository
             commandType: CommandType.StoredProcedure
         );
     }
+
+
+    public async Task<Comanda?> ObterPorIdAsync(long id)
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        var parametros = new DynamicParameters();
+        parametros.Add("@IdComanda", id, DbType.Int64);
+
+        return await connection.QuerySingleOrDefaultAsync<Comanda>(
+            "dbo.pr_ObterComandaPorId",
+            parametros,
+            commandType: CommandType.StoredProcedure
+        );
+    }
 }

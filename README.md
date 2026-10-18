@@ -2,20 +2,21 @@
 
 API para consulta de comandas, desenvolvida em ASP.NET Core com .NET 10 e organizada em camadas de API, aplicação, domínio e infraestrutura.
 
-## Funcionalidade disponível
+## Funcionalidades e implementação atual
 
 - Listagem de comandas por meio de `GET /api/Comandas`.
 - Parâmetro opcional `filtro`, do tipo caractere, com valor padrão `T`.
 - Consulta ao SQL Server com Dapper e Microsoft.Data.SqlClient, executando a stored procedure `dbo.pr_ListarComandas`.
 - Registro do caso de uso e do repositório com tempo de vida scoped por meio de `AddApplication()` e `AddInfrastructure()`.
 - Documento OpenAPI disponível no ambiente `Development`.
+- Consulta por ID implementada nas camadas de aplicação e infraestrutura, ainda sem endpoint HTTP e sem registro do handler na injeção de dependências.
 
 ## Estrutura
 
 | Projeto | Responsabilidade |
 | --- | --- |
 | `ComandaFlow.API` | Controllers, configuração e inicialização da API. |
-| `ComandaFlow.Application` | Caso de uso `ListarComandasUseCase` e registro dos serviços de aplicação. |
+| `ComandaFlow.Application` | Caso de uso `ListarComandasUseCase`, query `ObterComandaPorIdQuery`, handler `ObterComandaPorIdQueryHandler` e registro dos serviços de aplicação. |
 | `ComandaFlow.Domain` | Entidade `Comanda` e contrato `IComandaRepository`. |
 | `ComandaFlow.Infrastructure` | Repositório SQL Server, acesso com Dapper e registro dos serviços de infraestrutura. |
 
@@ -27,7 +28,9 @@ API para consulta de comandas, desenvolvida em ASP.NET Core com .NET 10 e organi
 
 O banco de dados utilizado pela API é o do projeto [ComandaFlow.Legacy](https://github.com/domingosafneto/ComandaFlow.Legacy). Consulte esse repositório para os scripts e as orientações de configuração do banco.
 
-Este repositório não inclui scripts para criação do banco ou da procedure. Os valores de filtro aceitos e suas regras são definidos pela procedure.
+Para executar a consulta por ID, também é necessária a stored procedure `dbo.pr_ObterComandaPorId`, aceitando `@IdComanda` do tipo `bigint` e retornando colunas compatíveis com a entidade `Comanda`.
+
+Este repositório não inclui scripts para criação do banco ou das procedures. Os valores de filtro aceitos e suas regras são definidos pela procedure.
 
 ## Configuração do banco
 
@@ -84,3 +87,15 @@ Exemplo ilustrativo de resposta `200 OK`:
 ```
 
 Os registros retornados dependem dos dados e das regras da procedure no banco configurado.
+
+## Consulta de comanda por ID
+
+A consulta por ID está implementada internamente com os seguintes componentes:
+
+- `ObterComandaPorIdQuery(long Id)`: representa os dados da consulta.
+- `ObterComandaPorIdQueryHandler.HandleAsync(query)`: encaminha o ID para `IComandaRepository.ObterPorIdAsync(long id)` e retorna `Comanda?`.
+- `ComandaRepository.ObterPorIdAsync(long id)`: executa `dbo.pr_ObterComandaPorId` com o parâmetro `@IdComanda` configurado como `DbType.Int64`, usando Dapper e SQL Server.
+
+O repositório utiliza `QuerySingleOrDefaultAsync<Comanda>`: retorna a comanda encontrada ou `null` quando não há resultado; mais de um registro provoca uma exceção.
+
+O handler ainda não está registrado em `AddApplication()` e o controller disponibiliza somente a listagem. Portanto, esta implementação ainda não oferece uma rota HTTP de consulta por ID nem define respostas HTTP para comanda inexistente. A exposição desse fluxo pela API depende dessas integrações.
