@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿
+using Microsoft.AspNetCore.Mvc;
 using ComandaFlow.Application.Comandas.ListarComandas;
+using ComandaFlow.Application.Comandas.Queries.ObterComandaPorId;
 
 namespace ComandaFlow.API.Controllers;
 
@@ -8,11 +10,14 @@ namespace ComandaFlow.API.Controllers;
 public class ComandasController : ControllerBase
 {
     private readonly ListarComandasUseCase _useCase;
+    private readonly ObterComandaPorIdQueryHandler _obterPorIdHandler;
 
     public ComandasController(
-        ListarComandasUseCase useCase)
+        ListarComandasUseCase useCase,
+        ObterComandaPorIdQueryHandler obterPorIdHandler)
     {
         _useCase = useCase;
+        _obterPorIdHandler = obterPorIdHandler;
     }
 
     [HttpGet]
@@ -21,5 +26,18 @@ public class ComandasController : ControllerBase
         var comandas = await _useCase.ExecutarAsync(filtro);
 
         return Ok(comandas);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> ObterPorId([FromRoute] long id)
+    {
+        var query = new ObterComandaPorIdQuery(id);
+
+        var comanda = await _obterPorIdHandler.HandleAsync(query);
+
+        if (comanda is null)
+            return NotFound();
+
+        return Ok(comanda);
     }
 }
