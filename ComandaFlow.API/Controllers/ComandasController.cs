@@ -1,7 +1,8 @@
 ﻿
-using Microsoft.AspNetCore.Mvc;
 using ComandaFlow.Application.Comandas.ListarComandas;
 using ComandaFlow.Application.Comandas.Queries.ObterComandaPorId;
+using ComandaFlow.Application.Common.Messages;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ComandaFlow.API.Controllers;
 
@@ -36,7 +37,13 @@ public class ComandasController : ControllerBase
         var comanda = await _obterPorIdHandler.HandleAsync(query);
 
         if (comanda is null)
-            return NotFound();
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = Mensagens.Alerta.ComandaNaoEncontrada
+            });
+        }
 
         return Ok(comanda);
     }

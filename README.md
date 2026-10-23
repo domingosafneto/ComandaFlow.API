@@ -5,20 +5,23 @@ API para consulta de comandas, desenvolvida em ASP.NET Core com .NET 10 e organi
 ## Funcionalidades e implementação atual
 
 - Listagem de comandas por meio de `GET /api/Comandas`.
+- Consulta de uma comanda por ID por meio de `GET /api/Comandas/{id}`.
 - Parâmetro opcional `filtro`, do tipo caractere, com valor padrão `T`.
 - Consulta ao SQL Server com Dapper e Microsoft.Data.SqlClient, executando a stored procedure `dbo.pr_ListarComandas`.
-- Registro do caso de uso e do repositório com tempo de vida scoped por meio de `AddApplication()` e `AddInfrastructure()`.
+- Registro do caso de uso, do handler de consulta por ID e do repositório com tempo de vida scoped por meio de `AddApplication()` e `AddInfrastructure()`.
 - Documento OpenAPI disponível no ambiente `Development`.
-- Consulta por ID implementada nas camadas de aplicação e infraestrutura, ainda sem endpoint HTTP e sem registro do handler na injeção de dependências.
+- Resposta `404 Not Found` com `ProblemDetails` quando a comanda consultada por ID não existe.
 
 ## Estrutura
 
 | Projeto | Responsabilidade |
 | --- | --- |
 | `ComandaFlow.API` | Controllers, configuração e inicialização da API. |
-| `ComandaFlow.Application` | Caso de uso `ListarComandasUseCase`, query `ObterComandaPorIdQuery`, handler `ObterComandaPorIdQueryHandler` e registro dos serviços de aplicação. |
+| `ComandaFlow.Application` | Caso de uso `ListarComandasUseCase`, query `ObterComandaPorIdQuery`, handler `ObterComandaPorIdQueryHandler`, mensagens compartilhadas em `Common/Messages/Mensagens.cs` e registro dos serviços de aplicação. |
 | `ComandaFlow.Domain` | Entidade `Comanda` e contrato `IComandaRepository`. |
 | `ComandaFlow.Infrastructure` | Repositório SQL Server, acesso com Dapper e registro dos serviços de infraestrutura. |
+
+A camada de aplicação está em transição gradual do padrão de casos de uso (`UseCase`) para CQRS (separação entre comandos de escrita e consultas de leitura). A listagem de comandas ainda utiliza `ListarComandasUseCase`, enquanto a consulta por ID já utiliza `ObterComandaPorIdQuery` e `ObterComandaPorIdQueryHandler`. Atualmente, apenas operações de consulta estão implementadas; a migração para CQRS ainda não está concluída.
 
 ## Pré-requisitos
 
@@ -28,7 +31,7 @@ API para consulta de comandas, desenvolvida em ASP.NET Core com .NET 10 e organi
 
 O banco de dados utilizado pela API é o do projeto [ComandaFlow.Legacy](https://github.com/domingosafneto/ComandaFlow.Legacy). Consulte esse repositório para os scripts e as orientações de configuração do banco.
 
-Para executar a consulta por ID, também é necessária a stored procedure `dbo.pr_ObterComandaPorId`, aceitando `@IdComanda` do tipo `bigint` e retornando colunas compatíveis com a entidade `Comanda`.
+Para executar a consulta por ID, também é necessária a stored procedure `dbo.pr_ObterComandaPorId`, aceitando `@IdComanda` do tipo `bigint` e retornando no máximo um registro, com colunas compatíveis com `IdComanda`, `Numero` e `Disponivel`.
 
 Este repositório não inclui scripts para criação do banco ou das procedures. Os valores de filtro aceitos e suas regras são definidos pela procedure.
 
@@ -90,7 +93,32 @@ Os registros retornados dependem dos dados e das regras da procedure no banco co
 
 ## Consulta de comanda por ID
 
-A consulta por ID está implementada internamente com os seguintes componentes:
+```http
+GET https://localhost:7287/api/Comandas/1
+```
+
+O parâmetro de rota `id` é do tipo `long`. Quando a comanda existe, a API retorna `200 OK` com um objeto, conforme o exemplo ilustrativo:
+
+```json
+{
+    "idComanda": 1,
+    "numero": 101,
+    "disponivel": true
+}
+```
+
+Quando não há resultado, a API retorna `404 Not Found` com um corpo `ProblemDetails`. Os campos definidos pelo controller são:
+
+```json
+{
+    "title": "Comanda não encontrada.",
+    "status": 404
+}
+```
+
+O ASP.NET Core pode incluir campos adicionais na resposta, como `type` e `traceId`.
+
+O fluxo utiliza os seguintes componentes:
 
 - `ObterComandaPorIdQuery(long Id)`: representa os dados da consulta.
 - `ObterComandaPorIdQueryHandler.HandleAsync(query)`: encaminha o ID para `IComandaRepository.ObterPorIdAsync(long id)` e retorna `Comanda?`.
@@ -98,4 +126,4 @@ A consulta por ID está implementada internamente com os seguintes componentes:
 
 O repositório utiliza `QuerySingleOrDefaultAsync<Comanda>`: retorna a comanda encontrada ou `null` quando não há resultado; mais de um registro provoca uma exceção.
 
-O handler ainda não está registrado em `AddApplication()` e o controller disponibiliza somente a listagem. Portanto, esta implementação ainda não oferece uma rota HTTP de consulta por ID nem define respostas HTTP para comanda inexistente. A exposição desse fluxo pela API depende dessas integrações.
+O handler está registrado em `AddApplication()` e é recebido pelo construtor de `ComandasController`. A mensagem de comanda inexistente está centralizada em `Mensagens.Alerta.ComandaNaoEncontrada`.
