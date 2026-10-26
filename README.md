@@ -8,7 +8,7 @@ API para consulta de comandas, desenvolvida em ASP.NET Core com .NET 10 e organi
 - Consulta de uma comanda por ID por meio de `GET /api/Comandas/{id}`.
 - Parâmetro opcional `filtro`, do tipo caractere, com valor padrão `T`.
 - Consulta ao SQL Server com Dapper e Microsoft.Data.SqlClient, executando a stored procedure `dbo.pr_ListarComandas`.
-- Registro do caso de uso, do handler de consulta por ID e do repositório com tempo de vida scoped por meio de `AddApplication()` e `AddInfrastructure()`.
+- Registro dos handlers de listagem e consulta por ID e do repositório com tempo de vida scoped por meio de `AddApplication()` e `AddInfrastructure()`.
 - Documento OpenAPI disponível no ambiente `Development`.
 - Resposta `404 Not Found` com `ProblemDetails` quando a comanda consultada por ID não existe.
 
@@ -17,11 +17,13 @@ API para consulta de comandas, desenvolvida em ASP.NET Core com .NET 10 e organi
 | Projeto | Responsabilidade |
 | --- | --- |
 | `ComandaFlow.API` | Controllers, configuração e inicialização da API. |
-| `ComandaFlow.Application` | Caso de uso `ListarComandasUseCase`, query `ObterComandaPorIdQuery`, handler `ObterComandaPorIdQueryHandler`, mensagens compartilhadas em `Common/Messages/Mensagens.cs` e registro dos serviços de aplicação. |
+| `ComandaFlow.Application` | Queries `ListarComandasQuery` e `ObterComandaPorIdQuery`, seus respectivos handlers, mensagens compartilhadas em `Common/Messages/Mensagens.cs` e registro dos serviços de aplicação. |
 | `ComandaFlow.Domain` | Entidade `Comanda` e contrato `IComandaRepository`. |
-| `ComandaFlow.Infrastructure` | Repositório SQL Server, acesso com Dapper e registro dos serviços de infraestrutura. |
+| `ComandaFlow.Infrastructure` | Repositório SQL Server, acesso com Dapper, mensagens em `Common/Messages/MensagensInfra.cs` e registro dos serviços de infraestrutura. |
 
-A camada de aplicação está em transição gradual do padrão de casos de uso (`UseCase`) para CQRS (separação entre comandos de escrita e consultas de leitura). A listagem de comandas ainda utiliza `ListarComandasUseCase`, enquanto a consulta por ID já utiliza `ObterComandaPorIdQuery` e `ObterComandaPorIdQueryHandler`. Atualmente, apenas operações de consulta estão implementadas; a migração para CQRS ainda não está concluída.
+A camada de aplicação organiza as operações de leitura em queries e handlers, seguindo a separação proposta pelo CQRS entre comandos de escrita e consultas de leitura. A listagem utiliza `ListarComandasQuery` e `ListarComandasQueryHandler`, e a consulta por ID utiliza `ObterComandaPorIdQuery` e `ObterComandaPorIdQueryHandler`. Atualmente, apenas operações de consulta estão implementadas.
+
+As mensagens da aplicação estão agrupadas em erros, alertas e sucessos na classe `Mensagens`. A existência de uma mensagem não implica que o comportamento correspondente já esteja implementado nos endpoints.
 
 ## Pré-requisitos
 
@@ -53,7 +55,7 @@ $env:ConnectionStrings__DefaultConnection = "Server=SEU_SERVIDOR\SUA_INSTANCIA;D
 
 Substitua os valores de exemplo pelos dados do seu ambiente. Mantenha credenciais fora dos arquivos versionados. O `.gitignore` ignora `.env` e `.env.*`, mas a aplicação não possui carregamento automático desses arquivos.
 
-Se a chave de conexão não estiver configurada, a inicialização lança a mensagem `Connection string não configurada.`.
+Se a chave de conexão não estiver configurada, a inicialização lança uma `InvalidOperationException` com a mensagem `Connection string não configurada.`, centralizada em `MensagensInfra.ConexaoNaoConfigurada`.
 
 ## Executar localmente
 
@@ -76,6 +78,8 @@ GET https://localhost:7287/api/Comandas?filtro=T
 ```
 
 Quando `filtro` é omitido, a API utiliza `T`. O valor recebido é encaminhado ao parâmetro `@Filtro` da procedure.
+
+O controller cria uma `ListarComandasQuery(char Filtro = 'T')` e a encaminha para `ListarComandasQueryHandler.HandleAsync(query)`. O handler chama `IComandaRepository.ListarAsync(query.Filtro)` e retorna `IEnumerable<Comanda>`. Ele está registrado em `AddApplication()` e é recebido pelo construtor de `ComandasController`.
 
 Exemplo ilustrativo de resposta `200 OK`:
 
