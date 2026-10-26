@@ -1,4 +1,5 @@
 ﻿using ComandaFlow.Domain.Interfaces;
+using ComandaFlow.Infrastructure.Common.Messages;
 using ComandaFlow.Infrastructure.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,10 +13,9 @@ public static class DependencyInjectionExtension
         IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string não configurada.");
+            ?? throw new InvalidOperationException(MensagensInfra.ConexaoNaoConfigurada);
 
-        services.AddScoped<IComandaRepository>(sp =>
-            new ComandaRepository(connectionString));
+        services.AddScoped<IComandaRepository>(sp => new ComandaRepository(connectionString));
 
         return services;
     }

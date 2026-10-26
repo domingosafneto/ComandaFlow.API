@@ -1,13 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using ComandaFlow.Application.Comandas.ListarComandas;
+﻿
+using Microsoft.Extensions.DependencyInjection;
+using ComandaFlow.Application.Comandas.Queries.ListarComandas;
+using ComandaFlow.Application.Comandas.Queries.ObterComandaPorId;
 
 namespace ComandaFlow.Application;
 
 public static class DependencyInjectionExtension
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddApplication(
+        this IServiceCollection services)
     {
-        services.AddScoped<ListarComandasUseCase>();
+        services.AddScoped<ListarComandasQueryHandler>();
+        services.AddScoped<ObterComandaPorIdQueryHandler>();
 
         return services;
     }
